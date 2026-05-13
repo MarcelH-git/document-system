@@ -1,92 +1,69 @@
-# Digitalisierung
+# document-system
 
-Lokales Dokumenten-System auf einer VirtualBox-VM (Ubuntu). Alles läuft lokal — kein Cloud-Zugriff, keine externen Dienste.
+Local document system running on a VirtualBox VM (Ubuntu). Everything runs locally — no cloud access, no external services.
 
 ## Stack
 
-- **Paperless-ngx** — Dokumentenarchiv mit OCR → http://localhost:8010
-- **AnythingLLM** — KI-Chat über eigene Dokumente → http://localhost:3002
-- **Ollama** — lokales LLM, kein Cloud-Modell
+- **Paperless-ngx** — document archive with OCR → http://localhost:8010
+- **AnythingLLM** — AI chat over your own documents → http://localhost:3002
+- **Ollama** — local LLM, no cloud model
 
-## Voraussetzungen
+## Requirements
 
 - Docker + Docker Compose
-- Ollama mit den benötigten Modellen (`gemma4:e4b`, `nomic-embed-text:latest`)
-- Python 3 mit `requests` (`pip install requests`)
-- `~/privat/.env` mit den API-Keys (siehe unten)
+- Ollama with the required models (`gemma4:e4b`, `nomic-embed-text:latest`)
+- Python 3 with `requests` (`pip install requests`)
+- `~/privat/.env` with API keys (see below)
 
-## Starten
+## Starting
 
 ```bash
 cd ~/privat/dokumente
 docker compose up -d
 ```
 
-## Konfiguration
+## Configuration
 
-`~/privat/.env` (Vorlage: `.env.example`):
+`~/privat/.env` (template: `.env.example`):
 ```
-PAPERLESS_TOKEN=         # API-Token aus Paperless unter Einstellungen → API-Token
-ANYTHINGLLM_TOKEN=       # API-Token aus AnythingLLM unter Einstellungen
-PAPERLESS_DBPASS=        # Beliebiges sicheres Passwort für die Postgres-Datenbank
-PAPERLESS_SECRET_KEY=    # Langer zufälliger String, z.B. mit: python3 -c "import secrets; print(secrets.token_hex(32))"
+PAPERLESS_TOKEN=         # API token from Paperless under Settings → API Token
+ANYTHINGLLM_TOKEN=       # API token from AnythingLLM under Settings
+PAPERLESS_DBPASS=        # Any secure password for the Postgres database
+PAPERLESS_SECRET_KEY=    # Long random string, e.g.: python3 -c "import secrets; print(secrets.token_hex(32))"
 ```
 
-## Skripte
+## Scripts
 
-### `paperless_ki.py` (liegt in `~/privat/`)
-Analysiert neue Dokumente (ohne Tags) mit Ollama und setzt automatisch Titel, Tags, Korrespondent und Dokumenttyp. Führt am Ende automatisch einen Paperless-Export als Backup durch.
+### `paperless_ki.py` (located in `~/privat/`)
+Analyses new documents (without tags) using Ollama and automatically sets title, tags, correspondent and document type. Runs a Paperless export as backup at the end.
 
 ```bash
 python3 ~/privat/paperless_ki.py
 ```
 
-Verwendetes Modell: `qwen2.5:14b-ctx32k` (konfigurierbar über `ANALYSIS_MODEL` im Script).
+Model used: `qwen2.5:14b-ctx32k` (configurable via `ANALYSIS_MODEL` in the script).
 
 ### `paperless_to_anythingllm.py`
-Synchronisiert neue Dokumente aus Paperless in den AnythingLLM-Workspace.
+Syncs new documents from Paperless into the AnythingLLM workspace.
 
 ```bash
 python3 ~/paperless_to_anythingllm.py
 ```
 
-Bereits synchronisierte Dokument-IDs werden in `~/synced_ids.json` gespeichert.
+Already synced document IDs are stored in `~/synced_ids.json`.
 
 ### `chat.py`
-Chat mit den eigenen Dokumenten über AnythingLLM.
+Chat with your own documents via AnythingLLM.
 
 ```bash
-# Interaktiver Modus
+# Interactive mode
 chat
 
-# Einzelne Frage
-chat Was steht in meiner letzten Rechnung?
+# Single question
+chat What does my latest invoice say?
 ```
 
-Der Alias `chat` muss in `~/.bashrc` eingetragen sein:
+The `chat` alias must be added to `~/.bashrc`:
 ```bash
 alias chat='~/chat.py'
 ```
-
-## Einrichtung
-
-Skripte klonen und Alias setzen:
-
-```bash
-git clone git@github.com:MarcelH-git/digitalisierung.git
-cp digitalisierung/chat.py digitalisierung/paperless_to_anythingllm.py ~/
-echo "alias chat='~/chat.py'" >> ~/.bashrc
-source ~/.bashrc
-```
-
-Dann `~/privat/.env` mit den API-Keys anlegen (siehe Konfiguration oben).
-
-## Zugriff von Windows
-
-SSH-Tunnel für die Web-Oberflächen:
-
-```powershell
-ssh -p 2222 -L 3002:127.0.0.1:3002 -L 8010:127.0.0.1:8010 BENUTZER@127.0.0.1
-```
-
-Dann im Browser `http://localhost:3002` (AnythingLLM) bzw. `http://localhost:8010` (Paperless).
